@@ -1,18 +1,14 @@
-# Use Java 21 base image
-FROM eclipse-temurin:21-jdk-jammy
-
-# Set work directory
+# Use Maven for build
+FROM maven:3.9.6-eclipse-temurin-21 AS build
 WORKDIR /app
-
-# Copy Maven build file and source
 COPY pom.xml .
 COPY src ./src
+RUN mvn clean package -DskipTests
 
-# Build the application
-RUN ./mvnw clean package -DskipTests
+# Use slim JDK for runtime
+FROM eclipse-temurin:21-jdk-jammy
+WORKDIR /app
+COPY --from=build /app/target/library-management-0.0.1-SNAPSHOT.jar app.jar
 
-# Expose port
 EXPOSE 8085
-
-# Run the JAR
-ENTRYPOINT ["java","-jar","target/library-management-0.0.1-SNAPSHOT.jar"]
+ENTRYPOINT ["java","-jar","app.jar"]
